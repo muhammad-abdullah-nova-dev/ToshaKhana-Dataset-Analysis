@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Predictions | Toshakhana Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .predict-subtitle {
+            color: var(--color-muted);
+            font-size: 0.95rem;
+            margin-top: -0.75rem;
+            margin-bottom: 1.75rem;
+        }
+
+        /* Table overrides for predict page */
+        #predictions-table {
+            font-size: 13px;
+        }
+
+        #predictions-table thead th {
+            background-color: var(--color-surface-2);
+            color: var(--color-accent);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            border-color: var(--color-border);
+            padding: 0.75rem 0.85rem;
+            white-space: nowrap;
+        }
+
+        #predictions-table tbody td {
+            border-color: var(--color-border);
+            padding: 0.6rem 0.85rem;
+            vertical-align: middle;
+            color: var(--color-text);
+        }
+
+        #predictions-table tbody tr {
+            border-bottom: 1px solid var(--color-border);
+            transition: background 0.15s;
+        }
+
+        #predictions-table tbody tr:hover {
+            background-color: var(--color-surface-hover) !important;
+        }
+
+        .td-mono {
+            font-family: var(--font-mono);
+            font-size: 12px;
+        }
+
+        .td-muted {
+            color: var(--color-muted);
+            font-size: 12px;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .td-gold {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--color-accent);
+        }
+
+        .row-num {
+            color: var(--color-muted);
+            font-size: 11px;
+            font-family: var(--font-mono);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-toshakhana">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <span class="brand-gold">Toshakhana</span> Analysis
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/stats">Statistics</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/graphs">Graphs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/distributions">Distributions</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/regression">Regression</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/predict">Predictions</a>
+                    </li>
+                    <li class="nav-item"><a class="nav-link" href="/predict_ci">Predict (CI)</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-wrapper">
+        <div class="container">
+
+            <!-- Page Title -->
+            <h2 class="page-title">
+                <span class="title-accent">AI</span> Predictions
+            </h2>
+            <p class="predict-subtitle">
+                Machine learning predictions across all gift records — retention cost, retention probability, and value tier.
+            </p>
+
+            {% if error %}
+                <div class="alert alert-danger" role="alert">
+                    <strong>Error:</strong> {{ error }}
+                </div>
+            {% else %}
+
+                <!-- Loading Spinner (shown while page renders, hidden by JS on load) -->
+                <div id="loading">
+                    <div class="spinner"></div>
+                    <p class="spinner-text">Rendering predictions…</p>
+                </div>
+
+                <!-- Main Content -->
+                <div id="main-content" style="display: none;">
+
+                    <!-- KPI Summary Strip -->
+                    <div class="kpi-strip">
+                        <div class="kpi-card" style="border-top: 3px solid var(--color-accent);">
+                            <div class="kpi-icon">🗃️</div>
+                            <div class="kpi-label">Total Records</div>
+                            <div class="kpi-value">{{ summary.total_rows }}</div>
+                        </div>
+                        <div class="kpi-card" style="border-top: 3px solid var(--color-blue);">
+                            <div class="kpi-icon">📊</div>
+                            <div class="kpi-label">Avg Retention Probability</div>
+                            <div class="kpi-value" style="color: var(--color-blue);">{{ summary.avg_retention_prob }}%</div>
+                        </div>
+                        <div class="kpi-card" style="border-top: 3px solid var(--color-danger);">
+                            <div class="kpi-icon">⚠️</div>
+                            <div class="kpi-label">High-Risk Gifts</div>
+                            <div class="kpi-value" style="color: var(--color-danger);">{{ summary.high_risk_count }}</div>
+                        </div>
+                        <div class="kpi-card" style="border-top: 3px solid var(--color-teal);">
+                            <div class="kpi-icon">💎</div>
+                            <div class="kpi-label">Luxury Tier Gifts</div>
+                            <div class="kpi-value" style="color: var(--color-teal);">{{ summary.tier_counts.Luxury }}</div>
+                        </div>
+                    </div>
+
+                    {% if rows %}
+
+                        <!-- Filter Bar -->
+                        <div class="filter-bar">
+                            <div>
+                                <label for="filter-tier">Tier</label>
+                                <select id="filter-tier">
+                                    <option value="all">All Tiers</option>
+                                    <option value="Budget">Budget</option>
+                                    <option value="Standard">Standard</option>
+                                    <option value="Premium">Premium</option>
+                                    <option value="Luxury">Luxury</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="filter-affiliation">Affiliation</label>
+                                <select id="filter-affiliation">
+                                    <option value="all">All Affiliations</option>
+                                    {% set seen = [] %}
+                                    {% for row in rows %}
+                                        {% if row.affiliation not in seen %}
+                                            {% if seen.append(row.affiliation) %}{% endif %}
+                                            <option value="{{ row.affiliation }}">{{ row.affiliation }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="filter-risk">Risk Level</label>
+                                <select id="filter-risk">
+                                    <option value="all">All</option>
+                                    <option value="high">High Risk (&lt; 30%)</option>
+                                    <option value="medium">Medium (30–70%)</option>
+                                    <option value="low">Low Risk (&gt; 70%)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Predictions Table -->
+                        <div class="card-dark" style="overflow: hidden;">
+                            <div class="table-responsive">
+                                <table class="table dark-table mb-0" id="predictions-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Gift</th>
+                                            <th>Category</th>
+                                            <th>Affiliation</th>
+                                            <th class="text-end">Assessed Value</th>
+                                            <th class="text-end">Pred. Retention Cost</th>
+                                            <th>Retention Prob.</th>
+                                            <th>Value Tier</th>
+                                            <th>Actual Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="predictions-tbody">
+                                        {% for row in rows %}
+                                            {% if row.retention_probability >= 0.7 %}
+                                                {% set bar_color = '#2ECC71' %}
+                                            {% elif row.retention_probability >= 0.3 %}
+                                                {% set bar_color = '#C9A84C' %}
+                                            {% else %}
+                                                {% set bar_color = '#C0392B' %}
+                                            {% endif %}
+                                            {% set retained_raw = row.actual_retained | lower %}
+                                            <tr
+                                                data-tier="{{ row.value_tier }}"
+                                                data-affiliation="{{ row.affiliation }}"
+                                                data-risk="{% if row.retention_probability >= 0.7 %}low{% elif row.retention_probability >= 0.3 %}medium{% else %}high{% endif %}"
+                                            >
+                                                <!-- # -->
+                                                <td class="row-num">{{ loop.index }}</td>
+
+                                                <!-- Gift detail -->
+                                                <td class="td-muted" title="{{ row.detail }}">{{ row.detail }}</td>
+
+                                                <!-- Category pill -->
+                                                <td>
+                                                    <span class="pill-badge">{{ row.category }}</span>
+                                                </td>
+
+                                                <!-- Affiliation pill -->
+                                                <td>
+                                                    <span class="pill-badge">{{ row.affiliation }}</span>
+                                                </td>
+
+                                                <!-- Assessed Value -->
+                                                <td class="td-mono text-end">
+                                                    {{ "{:,}".format(row.assessed_value) }}
+                                                </td>
+
+                                                <!-- Predicted Retention Cost -->
+                                                <td class="td-gold text-end">
+                                                    {{ "{:,}".format(row.pred_retention_cost) }}
+                                                </td>
+
+                                                <!-- Retention Probability bar -->
+                                                <td>
+                                                    <div style="display:flex; align-items:center; gap:8px;">
+                                                        <div style="width:60px; height:5px; background:#2C3E55; border-radius:3px; flex-shrink:0;">
+                                                            <div style="width:{{ (row.retention_probability * 100)|round|int }}%; height:5px; background:{{ bar_color }}; border-radius:3px;"></div>
+                                                        </div>
+                                                        <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:{{ bar_color }}; white-space:nowrap;">
+                                                            {{ (row.retention_probability * 100)|round(1) }}%
+                                                        </span>
+                                                    </div>
+                                                </td>
+
+                                                <!-- Value Tier badge -->
+                                                <td>
+                                                    <span class="tier-badge tier-{{ row.value_tier }}">{{ row.value_tier }}</span>
+                                                </td>
+
+                                                <!-- Actual Status chip -->
+                                                <td>
+                                                    {% if 'yes' in retained_raw or 'retained' in retained_raw %}
+                                                        <span class="status-chip status-retained">Retained</span>
+                                                    {% elif 'auctioned' in retained_raw %}
+                                                        <span class="status-chip status-auctioned">Auctioned</span>
+                                                    {% else %}
+                                                        <span class="status-chip status-other">Other</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div id="pagination"></div>
+
+                    {% else %}
+                        <div class="card-dark p-4 text-center">
+                            <p style="color: var(--color-muted);">No prediction data available.</p>
+                        </div>
+                    {% endif %}
+
+                </div><!-- /#main-content -->
+
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        // ── Show content on load ──────────────────────────────────────────────
+        // The spinner is visible by default; hide it and show content once DOM is ready
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            if (document.getElementById('predictions-tbody')) {
+                paginate();
+            }
+        });
+
+        // ── Pagination ────────────────────────────────────────────────────────
+        const ROWS_PER_PAGE = 50;
+        let currentPage = 1;
+
+        function getVisibleRows() {
+            return Array.from(document.querySelectorAll('#predictions-tbody tr'))
+                .filter(r => r.style.display !== 'none');
+        }
+
+        function paginate() {
+            const rows = getVisibleRows();
+            const totalPages = Math.max(1, Math.ceil(rows.length / ROWS_PER_PAGE));
+
+            // Clamp currentPage
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            rows.forEach((r, i) => {
+                const inPage = i >= (currentPage - 1) * ROWS_PER_PAGE && i < currentPage * ROWS_PER_PAGE;
+                r.style.display = inPage ? '' : 'none';
+            });
+
+            renderPagination(totalPages);
+        }
+
+        function renderPagination(total) {
+            const el = document.getElementById('pagination');
+            if (!el) return;
+            el.innerHTML = '';
+
+            // Prev button
+            const prev = document.createElement('button');
+            prev.textContent = '← Prev';
+            prev.className = 'page-btn' + (currentPage === 1 ? ' disabled' : '');
+            prev.disabled = currentPage === 1;
+            prev.onclick = () => { if (currentPage > 1) { currentPage--; paginate(); } };
+            el.appendChild(prev);
+
+            // Page number buttons (show max 7 around current)
+            const range = 3;
+            for (let p = 1; p <= total; p++) {
+                if (p === 1 || p === total || (p >= currentPage - range && p <= currentPage + range)) {
+                    const btn = document.createElement('button');
+                    btn.textContent = p;
+                    btn.className = 'page-btn' + (p === currentPage ? ' active' : '');
+                    btn.onclick = (function (page) {
+                        return function () { currentPage = page; paginate(); };
+                    }(p));
+                    el.appendChild(btn);
+                } else if (p === currentPage - range - 1 || p === currentPage + range + 1) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '…';
+                    dots.style.cssText = 'color:var(--color-muted);padding:4px 6px;font-size:13px;';
+                    el.appendChild(dots);
+                }
+            }
+
+            // Next button
+            const next = document.createElement('button');
+            next.textContent = 'Next →';
+            next.className = 'page-btn' + (currentPage === total ? ' disabled' : '');
+            next.disabled = currentPage === total;
+            next.onclick = () => { if (currentPage < total) { currentPage++; paginate(); } };
+            el.appendChild(next);
+        }
+
+        // ── Filter logic ──────────────────────────────────────────────────────
+        function applyFilters() {
+            const tier = document.getElementById('filter-tier').value;
+            const aff  = document.getElementById('filter-affiliation').value;
+            const risk = document.getElementById('filter-risk').value;
+
+            // First, reset all rows to visible so getVisibleRows works correctly
+            document.querySelectorAll('#predictions-tbody tr').forEach(r => {
+                const show =
+                    (tier === 'all' || r.dataset.tier === tier) &&
+                    (aff  === 'all' || r.dataset.affiliation === aff) &&
+                    (risk === 'all' || r.dataset.risk === risk);
+                r.style.display = show ? '' : 'none';
+            });
+
+            currentPage = 1;
+            paginate();
+        }
+
+        const tierEl = document.getElementById('filter-tier');
+        const affEl  = document.getElementById('filter-affiliation');
+        const riskEl = document.getElementById('filter-risk');
+
+        if (tierEl) tierEl.onchange = applyFilters;
+        if (affEl)  affEl.onchange  = applyFilters;
+        if (riskEl) riskEl.onchange = applyFilters;
+    </script>
+</body>
+</html>

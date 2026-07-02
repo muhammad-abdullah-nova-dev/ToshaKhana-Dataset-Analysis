@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ detail.title }} — Toshakhana Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-toshakhana">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <span class="brand-gold">Toshakhana</span> Analysis
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/stats">Statistics</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/graphs">Graphs</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/distributions">Distributions</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/regression">Regression</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/predict">Predictions</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/predict_ci">Predict (CI)</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-wrapper">
+        <div class="container">
+
+            {% if error %}
+                <div class="alert alert-danger" role="alert">
+                    <strong>Error:</strong> {{ error }}
+                </div>
+            {% else %}
+
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" style="margin-bottom: 1.25rem;">
+                <ol class="breadcrumb" style="background: none; padding: 0; margin: 0; font-size: 0.82rem;">
+                    <li class="breadcrumb-item">
+                        <a href="/graphs" style="color: var(--color-muted); text-decoration: none;">← All Graphs</a>
+                    </li>
+                    <li class="breadcrumb-item active" style="color: var(--color-accent);">
+                        {{ detail.title }}
+                    </li>
+                </ol>
+            </nav>
+
+            <!-- Page Title -->
+            <h2 class="page-title" style="margin-bottom: 0.4rem;">
+                {{ detail.title }}
+            </h2>
+            <p style="color: var(--color-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">
+                {{ detail.subtitle }}
+            </p>
+
+            <!-- Meta badges -->
+            <div class="detail-meta-row">
+                <div class="detail-meta-badge">
+                    Chart type: <span>{{ detail.chart_type }}</span>
+                </div>
+                <div class="detail-meta-badge">
+                    Graph <span>{{ graph_id + 1 }}</span> of <span>{{ total }}</span>
+                </div>
+                <div class="detail-meta-badge">
+                    X-axis: <span>{{ detail.x_axis }}</span>
+                </div>
+                <div class="detail-meta-badge">
+                    Y-axis: <span>{{ detail.y_axis }}</span>
+                </div>
+            </div>
+
+            <!-- Main layout: image left, description right on large screens -->
+            <div class="row g-4 mb-4">
+
+                <!-- Graph Image -->
+                <div class="col-12 col-xl-8">
+                    <div class="card-dark h-100" style="border-top: 3px solid {{ detail.accent }};">
+                        <div class="card-body">
+                            <img src="data:image/png;base64,{{ plot.image }}"
+                                 class="graph-img w-100"
+                                 alt="{{ detail.title }}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description + Insights -->
+                <div class="col-12 col-xl-4 d-flex flex-column gap-4">
+
+                    <!-- Description card -->
+                    <div class="card-dark" style="border-top: 3px solid {{ detail.accent }};">
+                        <div class="card-body">
+                            <h3 class="card-title" style="color: {{ detail.accent }};">About this graph</h3>
+                            <p style="color: var(--color-text); font-size: 0.9rem; line-height: 1.75; margin: 0;">
+                                {{ detail.description }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Axis reference card -->
+                    <div class="card-dark">
+                        <div class="card-body" style="padding: 1rem 1.25rem;">
+                            <h4 style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase;
+                                       letter-spacing: 0.08em; color: var(--color-muted); margin-bottom: 0.75rem;">
+                                Axes
+                            </h4>
+                            <table class="axis-table w-100">
+                                <tr>
+                                    <td>X-axis</td>
+                                    <td>{{ detail.x_axis }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Y-axis</td>
+                                    <td>{{ detail.y_axis }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Key Insights -->
+            <div class="card-dark mb-5" style="border-top: 3px solid {{ detail.accent }};">
+                <div class="card-body">
+                    <h3 class="card-title" style="color: {{ detail.accent }};">Key Insights</h3>
+                    <ul class="insight-list">
+                        {% for insight in detail.insights %}
+                            <li>
+                                <span class="insight-bullet" style="background-color: {{ detail.accent }};"></span>
+                                <span>{{ insight }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Prev / Next navigation -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 pb-4">
+
+                <!-- Prev -->
+                <div>
+                    {% if prev_id is not none %}
+                        <a href="/graphs/{{ prev_id }}" class="nav-graph-btn">
+                            ← Previous graph
+                        </a>
+                    {% else %}
+                        <span class="nav-graph-btn" style="opacity: 0.35; cursor: default;">← Previous graph</span>
+                    {% endif %}
+                </div>
+
+                <!-- Progress dots -->
+                <div class="progress-dots">
+                    {% for i in range(total) %}
+                        <a href="/graphs/{{ i }}"
+                           class="progress-dot {% if i == graph_id %}active{% endif %}"
+                           title="Graph {{ i + 1 }}"
+                           style="{% if i == graph_id %}background-color: {{ detail.accent }};{% endif %}">
+                        </a>
+                    {% endfor %}
+                </div>
+
+                <!-- Next -->
+                <div>
+                    {% if next_id is not none %}
+                        <a href="/graphs/{{ next_id }}" class="nav-graph-btn">
+                            Next graph →
+                        </a>
+                    {% else %}
+                        <span class="nav-graph-btn" style="opacity: 0.35; cursor: default;">Next graph →</span>
+                    {% endif %}
+                </div>
+
+            </div>
+
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+</body>
+</html>
